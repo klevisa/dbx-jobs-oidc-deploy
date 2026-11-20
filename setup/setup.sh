@@ -71,8 +71,14 @@ for app in "$ETL_APP" "$REP_APP"; do
 done
 
 say "Databricks: federation policy on the deployer (only this repo's '$ENVIRONMENT' environment)"
-SUBJECT="repo:$GH_REPO:environment:$ENVIRONMENT"
+# This account issues immutable ID-based subjects: repo:<owner>@<ownerId>/<repo>@<repoId>:environment:<env>
+OWNER_ID=$(gh api "$API" -q .owner.id); REPO_ID=$(gh api "$API" -q .id)
+SUBJECT="repo:${GH_REPO%/*}@$OWNER_ID/${GH_REPO#*/}@$REPO_ID:environment:$ENVIRONMENT"
 have=$(databricks account service-principal-federation-policy list "$DEP_ID" "${A[@]}" -o json | jq -r --arg s "$SUBJECT" '[.[]? | select(.oidc_policy.subject==$s)]|length')
+# drop stale policies for this repo with a different subject (e.g. the name-based one)
+for pid in $(databricks account service-principal-federation-policy list "$DEP_ID" "${A[@]}" -o json | jq -r --arg s "$SUBJECT" '.[]? | select(.oidc_policy.subject != $s) | .policy_id // .name'); do
+  databricks account service-principal-federation-policy delete "$DEP_ID" "$pid" "${A[@]}"
+done
 [ "$have" != 0 ] || databricks account service-principal-federation-policy create "$DEP_ID" "${A[@]}" >/dev/null --json \
   "{\"oidc_policy\":{\"issuer\":\"https://token.actions.githubusercontent.com\",\"audiences\":[\"$DATABRICKS_ACCOUNT_ID\"],\"subject\":\"$SUBJECT\"}}"
 ok "trusts subject: $SUBJECT"

@@ -29,8 +29,9 @@ jobs:
 
   # main only (enforced by the environment's branch rule AND the Databricks federation policy subject)
   deploy:
+    # Self-hosted: the workspace IP ACL blocks GitHub-hosted runner IPs.
     if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, dbx-local]
     environment: prod
     steps:
       - uses: actions/checkout@v4

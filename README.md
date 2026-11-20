@@ -4,7 +4,7 @@ Deploys two Databricks jobs from GitHub Actions with **no stored secrets**, usin
 
 ```
 GitHub Actions (env: prod, branch: main)
-   │  OIDC token  sub = repo:klevisa/dbx-jobs-oidc-deploy:environment:prod
+   │  OIDC token  sub = repo:klevisa@<id>/dbx-jobs-oidc-deploy@<id>:environment:prod
    ▼
 Databricks federation policy ──► deployer SP  (workspace user, not admin)
                                     │ roles/servicePrincipal.user (only these two)

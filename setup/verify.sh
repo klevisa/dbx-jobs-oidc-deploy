@@ -26,7 +26,8 @@ say "Positive: deploy from main"
 since=$(date -u +%Y-%m-%dT%H:%M:%SZ); gh workflow run deploy.yml -R "$GH_REPO" --ref main >/dev/null
 rid=$(wait_run deploy main "$since"); check "deploy run $rid succeeded" '[ "$(gh api "$API/actions/runs/$rid" -q .conclusion)" = success ]'
 for j in oidc-demo-etl oidc-demo-reports; do
-  ra=$(databricks jobs list "${W[@]}" --name "$j" -o json | jq -r '.[0].settings.run_as.service_principal_name // empty')
+  jid=$(databricks jobs list "${W[@]}" --name "$j" -o json | jq -r '.[0].job_id')
+  ra=$(databricks jobs get "$jid" "${W[@]}" -o json | jq -r '.run_as_user_name // empty')
   check "$j runs as a job SP ($ra), not the deployer" '[ -n "$ra" ] && [ "$ra" != "$DEP" ]'
 done
 

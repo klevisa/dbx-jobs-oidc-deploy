@@ -1,0 +1,40 @@
+name: deploy
+on:
+  pull_request:
+    paths: ["databricks.yml", "resources/**", "src/**", ".github/workflows/deploy.yml"]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # lets the job mint a GitHub OIDC token
+  contents: read
+
+env:
+  DATABRICKS_AUTH_TYPE: github-oidc
+  DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+  DATABRICKS_CLIENT_ID: ${{ vars.DEPLOYER_SP_APP_ID }}
+  DATABRICKS_TOKEN_AUDIENCE: ${{ vars.DATABRICKS_ACCOUNT_ID }}
+  BUNDLE_VAR_etl_sp_app_id: ${{ vars.ETL_SP_APP_ID }}
+  BUNDLE_VAR_reports_sp_app_id: ${{ vars.REPORTS_SP_APP_ID }}
+
+jobs:
+  # PRs: no environment, so no credentials. Only a static check that needs none.
+  lint:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python -m pip install pyyaml && python -c "import yaml,glob;[yaml.safe_load(open(f)) for f in glob.glob('**/*.yml',recursive=True)]"
+
+  # main only (enforced by the environment's branch rule AND the Databricks federation policy subject)
+  deploy:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - run: databricks current-user me -o json | jq -c '{userName}'
+      - run: databricks bundle validate
+      - run: databricks bundle deploy

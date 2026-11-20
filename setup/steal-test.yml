@@ -1,0 +1,22 @@
+# Used by verify.sh on a throwaway branch: tries to get credentials from outside main.
+name: steal-test
+on: push
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  with-env:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - run: echo "should never run"
+  no-env-databricks:
+    runs-on: ubuntu-latest
+    env:
+      DATABRICKS_AUTH_TYPE: github-oidc
+      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+      DATABRICKS_CLIENT_ID: ${{ vars.DEPLOYER_SP_APP_ID }}
+      DATABRICKS_TOKEN_AUDIENCE: ${{ vars.DATABRICKS_ACCOUNT_ID }}
+    steps:
+      - uses: databricks/setup-cli@main
+      - run: databricks current-user me

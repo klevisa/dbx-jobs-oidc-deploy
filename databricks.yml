@@ -1,0 +1,24 @@
+bundle:
+  name: oidc-jobs
+
+variables:
+  etl_sp_app_id:
+    description: Application ID of the SP the ETL job runs as (pre-created by setup/setup.sh)
+  reports_sp_app_id:
+    description: Application ID of the SP the reports job runs as (pre-created by setup/setup.sh)
+
+include:
+  - resources/*.yml
+
+targets:
+  prod:
+    mode: production
+    default: true
+    workspace:
+      host: ${DATABRICKS_HOST}
+      # Shared so the job SPs (not just the deployer) can read the notebooks.
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    # BUNDLE_VAR_etl_sp_app_id / BUNDLE_VAR_reports_sp_app_id come from repo variables in CI.
+    permissions:
+      - user_name: klevis.aliaj@databricks.com
+        level: CAN_MANAGE

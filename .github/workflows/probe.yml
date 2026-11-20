@@ -1,0 +1,19 @@
+# Shows who the pipeline logs in as and whether it can use each job SP. Changes nothing.
+name: probe
+on: workflow_dispatch
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    environment: prod
+    env:
+      DATABRICKS_AUTH_TYPE: github-oidc
+      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+      DATABRICKS_CLIENT_ID: ${{ vars.DEPLOYER_SP_APP_ID }}
+      DATABRICKS_TOKEN_AUDIENCE: ${{ vars.DATABRICKS_ACCOUNT_ID }}
+    steps:
+      - uses: databricks/setup-cli@main
+      - name: Identity
+        run: databricks current-user me -o json | jq -c '{userName}'
